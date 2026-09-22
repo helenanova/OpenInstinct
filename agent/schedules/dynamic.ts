@@ -13,7 +13,7 @@ import {
 const workerStartupLimitMs = 5 * 60_000;
 
 export default defineSchedule({
-  cron: "* * * * *",
+  cron: "0 0 * * *",
   run({ to, waitUntil }) {
     waitUntil(dispatchDueWork(to));
   },
