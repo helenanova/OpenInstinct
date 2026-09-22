@@ -84,6 +84,10 @@ export const env = createEnv({
     BLOB_READ_WRITE_TOKEN: requiredValue.optional(),
     BLOB_STORE_ID: requiredValue.optional(),
     GOOGLE_CONNECTOR_UID: requiredValue.default("google/open-instinct"),
+    GITHUB_CLIENT_ID: requiredValue.optional(),
+    GITHUB_CLIENT_SECRET: requiredValue.optional(),
+    GOOGLE_CLIENT_ID: requiredValue.optional(),
+    GOOGLE_CLIENT_SECRET: requiredValue.optional(),
     LINQ_CONNECTOR: requiredValue.optional(),
     LINQ_PHONE_NUMBER: requiredValue
       .refine(
@@ -91,6 +95,7 @@ export const env = createEnv({
         "LINQ_PHONE_NUMBER must use E.164 format"
       )
       .optional(),
+    OWNER_EMAIL: requiredValue.optional(),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("production"),

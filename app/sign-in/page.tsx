@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { SocialSignInButton } from "@app/sign-in/_components/social-form";
 import { LocalPhoneAuthForm } from "@app/sign-in/_components/local-form";
 import { PhoneOtpAuthForm } from "@app/sign-in/_components/otp-form";
 import { env, localPhoneAuthBypassEnabled } from "@shared/environment";
@@ -19,6 +20,13 @@ export default async function SignInPage({
     requestedCallback?.startsWith("/") && !requestedCallback.startsWith("//")
       ? requestedCallback
       : "/";
+  const githubSignInEnabled =
+    env.GITHUB_CLIENT_ID !== undefined &&
+    env.GITHUB_CLIENT_SECRET !== undefined;
+  const googleSignInEnabled =
+    env.GOOGLE_CLIENT_ID !== undefined &&
+    env.GOOGLE_CLIENT_SECRET !== undefined;
+  const socialSignInEnabled = githubSignInEnabled || googleSignInEnabled;
   const linqConfigured = env.LINQ_CONNECTOR !== undefined;
   const linqPhoneNumber =
     localPhoneAuthBypassEnabled || !env.LINQ_CONNECTOR
@@ -32,16 +40,26 @@ export default async function SignInPage({
         <div className="flex flex-col gap-2">
           <h1 className="type-page-title">Sign In</h1>
           <p className="type-supporting-body text-muted-foreground">
-            Enter your phone number to sign in.
+            {socialSignInEnabled
+              ? "Continue with your account to sign in."
+              : "Enter your phone number to sign in."}
           </p>
         </div>
-        {!localPhoneAuthBypassEnabled && !linqConfigured ? (
-          <p className="type-supporting-body text-muted-foreground">
-            iMessage sign-in is not configured for this deployment. Attach a
-            Linq connector through Vercel Connect.
-          </p>
-        ) : localPhoneAuthBypassEnabled ? (
+        {githubSignInEnabled ? (
+          <SocialSignInButton callbackUrl={callbackUrl} provider="github" />
+        ) : null}
+        {googleSignInEnabled ? (
+          <SocialSignInButton callbackUrl={callbackUrl} provider="google" />
+        ) : null}
+        {localPhoneAuthBypassEnabled ? (
           <LocalPhoneAuthForm callbackUrl={callbackUrl} />
+        ) : !linqConfigured ? (
+          socialSignInEnabled ? null : (
+            <p className="type-supporting-body text-muted-foreground">
+              iMessage sign-in is not configured for this deployment. Attach a
+              Linq connector through Vercel Connect.
+            </p>
+          )
         ) : (
           <PhoneOtpAuthForm
             callbackUrl={callbackUrl}

@@ -28,6 +28,22 @@ async function initializeAuthWithRetry() {
 
 async function initializeAuth() {
   const { betterAuthSecret } = await getInstallationSecrets();
+  const googleProvider =
+    env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        }
+      : undefined;
+  const githubProvider =
+    env.GITHUB_CLIENT_ID !== undefined && env.GITHUB_CLIENT_SECRET !== undefined
+      ? {
+          clientId: env.GITHUB_CLIENT_ID,
+          clientSecret: env.GITHUB_CLIENT_SECRET,
+        }
+      : undefined;
+  const socialSignInEnabled =
+    googleProvider !== undefined || githubProvider !== undefined;
   return betterAuth({
     appName: "Local Vault Assistant",
     baseURL: betterAuthBaseURL(),
@@ -35,6 +51,31 @@ async function initializeAuth() {
       provider: "pg",
       schema: { account, session, user, verification },
     }),
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (newUser) => {
+            // Phone sign-up creates users with synthetic local addresses.
+            if (newUser.email.endsWith("@local-vault.invalid")) {
+              return { data: newUser };
+            }
+            // Social sign-up is limited to this deployment's owner.
+            const ownerEmail = env.OWNER_EMAIL?.trim().toLowerCase();
+            if (
+              ownerEmail === undefined ||
+              newUser.email.trim().toLowerCase() !== ownerEmail
+            ) {
+              throw new APIError("FORBIDDEN", {
+                code: "ACCOUNT_NOT_ALLOWED",
+                message:
+                  "This deployment only allows the owner's account to sign in.",
+              });
+            }
+            return { data: newUser };
+          },
+        },
+      },
+    },
     disabledPaths: [
       "/change-email",
       "/request-password-reset",
@@ -42,10 +83,16 @@ async function initializeAuth() {
       "/reset-password/:token",
       "/send-verification-email",
       "/sign-in/email",
-      "/sign-in/social",
+      ...(socialSignInEnabled ? [] : ["/sign-in/social"]),
       "/sign-up/email",
       "/verify-email",
     ],
+    socialProviders: socialSignInEnabled
+      ? {
+          ...(githubProvider ? { github: githubProvider } : {}),
+          ...(googleProvider ? { google: googleProvider } : {}),
+        }
+      : undefined,
     plugins: [
       phoneNumber({
         allowedAttempts: 3,
