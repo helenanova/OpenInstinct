@@ -15,35 +15,25 @@ beforeEach(() => {
 });
 
 describe("auth session", () => {
-  it("returns only sessions backed by a verified phone number", async () => {
-    const verified = authSessionFor({
+  it("accepts sessions with a user id and email, phone fields optional", async () => {
+    const phoneUser = authSessionFor({
       id: "user-1",
       phoneNumber: "+12025550123",
       phoneNumberVerified: true,
     });
+    const socialUser = authSessionFor({ id: "user-2" });
     mocks.getSession
-      .mockResolvedValueOnce(verified)
-      .mockResolvedValueOnce(
-        authSessionFor({
-          id: "user-2",
-          phoneNumber: "+12025550124",
-          phoneNumberVerified: false,
-        })
-      )
-      .mockResolvedValueOnce(
-        authSessionFor({ id: "user-3", phoneNumberVerified: true })
-      )
-      .mockResolvedValueOnce(
-        authSessionFor({
-          id: "user-4",
-          phoneNumber: "",
-          phoneNumberVerified: true,
-        })
-      );
+      .mockResolvedValueOnce(phoneUser)
+      .mockResolvedValueOnce(socialUser)
+      .mockResolvedValueOnce({
+        session: socialUser.session,
+        user: { email: "" },
+      })
+      .mockResolvedValueOnce(null);
 
     const headers = new Headers();
-    await expect(getAuthSession(headers)).resolves.toEqual(verified);
-    await expect(getAuthSession(headers)).resolves.toBeNull();
+    await expect(getAuthSession(headers)).resolves.toEqual(phoneUser);
+    await expect(getAuthSession(headers)).resolves.toEqual(socialUser);
     await expect(getAuthSession(headers)).resolves.toBeNull();
     await expect(getAuthSession(headers)).resolves.toBeNull();
   });
