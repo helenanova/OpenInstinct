@@ -21,7 +21,11 @@ describe("auth session", () => {
       phoneNumber: "+12025550123",
       phoneNumberVerified: true,
     });
-    const socialUser = authSessionFor({ id: "user-2" });
+    const socialUser = authSessionFor({
+      id: "user-2",
+      phoneNumber: null,
+      phoneNumberVerified: null,
+    });
     mocks.getSession
       .mockResolvedValueOnce(phoneUser)
       .mockResolvedValueOnce(socialUser)
